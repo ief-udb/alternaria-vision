@@ -1,0 +1,43 @@
+# Entorno virtual
+.venv/
+__pycache__/
+*.py[cod]
+
+# Datos (demasiado pesados para Git)
+data/raw/
+data/processed/
+data/splits/
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/splits/.gitkeep
+
+# Pesos de modelos
+*.pt
+*.pth
+*.onnx
+checkpoints/
+runs/
+outputs/
+
+# Logs
+*.log
+logs/
+mlruns/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
+
+# Tests
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Builds
+dist/
+build/
+*.egg-info/

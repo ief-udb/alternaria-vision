@@ -1,0 +1,85 @@
+project:
+  name: "alternaria-clf"
+  version: "1.0.0"
+  seed: 42
+
+data:
+  root: "data/processed/classification"
+  classes: ["alternaria", "otros_hongos"]
+  image_size: 288
+  class_weights_auto: true
+  split:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+    stratified: true
+
+model:
+  architecture: "efficientnet_b2"
+  pretrained: true
+  num_classes: 2
+  dropout_rate: 0.3
+
+fine_tuning:
+  phase_a:
+    epochs: 5
+    lr: 1.0e-3
+    freeze_backbone: true
+  phase_b:
+    epochs: 30
+    lr: 1.0e-4
+    freeze_backbone: false
+    unfreeze_last_n_blocks: 3
+
+optimizer:
+  name: "adamw"
+  weight_decay: 1.0e-2
+
+scheduler:
+  name: "cosine_annealing"
+  T_max: 30
+  eta_min: 1.0e-6
+
+training:
+  batch_size: 32
+  num_workers: 4
+  pin_memory: true
+  mixed_precision: true
+  gradient_clip: 1.0
+  early_stopping:
+    patience: 10
+    monitor: "val_f1"
+
+augmentation:
+  train:
+    random_rotate_90: true
+    horizontal_flip: 0.5
+    vertical_flip: 0.5
+    hue_saturation:
+      hue_shift_limit: 180
+      sat_shift_limit: 50
+      val_shift_limit: 30
+      p: 0.75
+    channel_shuffle: 0.3
+    to_gray: 0.2
+    gaussian_blur: { blur_limit: [3, 7], p: 0.3 }
+    gaussian_noise: { var_limit: [10, 50], p: 0.4 }
+
+metrics:
+  primary: "f1_score"
+  report:
+    [
+      "accuracy",
+      "sensitivity",
+      "specificity",
+      "precision",
+      "f1_score",
+      "auc_roc",
+    ]
+  gradcam:
+    enabled: true
+    n_samples: 20
+
+checkpoints:
+  save_dir: "checkpoints/classification"
+  monitor: "val_f1"

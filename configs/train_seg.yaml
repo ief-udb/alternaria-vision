@@ -1,0 +1,35 @@
+project:
+  name: "alternaria-seg"
+  version: "1.0.0"
+  seed: 42
+
+data:
+  root: "data/processed/segmentation"
+  classes: ["conidias", "conidias_multiseptadas", "hifas"]
+  n_annotated: 116
+  image_size: 640
+  annotation_format: "yolo_seg"
+  split:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+
+model:
+  architecture: "yolo11n-seg"
+  pretrained_weights: "yolo11n-seg.pt"
+  num_classes: 3
+
+training:
+  epochs: 100
+  batch_size: 16
+  imgsz: 640
+  lr0: 1.0e-3
+  lrf: 0.01
+  patience: 20
+
+metrics:
+  report: ["mAP50", "mAP50_95", "precision", "recall", "iou_per_class"]
+
+checkpoints:
+  save_dir: "checkpoints/segmentation"
+  monitor: "mAP50"
