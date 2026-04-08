@@ -11,13 +11,17 @@ data/splits/
 !data/processed/.gitkeep
 !data/splits/.gitkeep
 
-# Pesos de modelos
+# Pesos de modelos temporales y de terceros
 *.pt
 *.pth
 *.onnx
-checkpoints/
 runs/
 outputs/
+
+# Excepto los modelos finales para produccion (Streamlit)
+checkpoints/
+!checkpoints/classification/best_model.pt
+!checkpoints/segmentation/best_model.pt
 
 # Logs
 *.log

@@ -5,7 +5,6 @@ description = "Prototipo de visión artificial para clasificación y segmentaci�
 authors = [
     { name = "Instituto de Estudios del Futuro — Universidad de Boyacá", email = "ief@uniboyaca.edu.co" },
 ]
-license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.11"
 keywords = [
@@ -37,6 +36,8 @@ dependencies = [
     "typer>=0.12.0",
     "onnx>=1.16.0",
     "onnxruntime>=1.18.0",
+    "onnxscript>=0.6.2",
+    "ultralytics>=8.4.35",
 ]
 
 [project.optional-dependencies]
@@ -54,7 +55,9 @@ mlflow = ["mlflow>=2.13.0"]
 [project.scripts]
 train-clf = "src.training.train_clf:app"
 train-seg = "src.training.train_seg:app"
+prepare-data = "src.utils.prepare_data:app"
 convert-ann = "src.utils.converter:app"
+evaluate = "src.evaluation.evaluate:app"
 
 [build-system]
 requires = ["hatchling"]

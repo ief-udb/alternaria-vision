@@ -1,4 +1,4 @@
-.PHONY: help setup setup-dev lint format test train-clf train-seg app clean
+.PHONY: help setup setup-dev lint format test prepare-data train-clf train-seg app clean
 
 PYTHON     := uv run python
 CONFIG_CLF := configs/train_clf.yaml
@@ -10,6 +10,7 @@ help:
 	@echo "  lint            Verifica estilo con Ruff"
 	@echo "  format          Formatea con Black + Ruff"
 	@echo "  test            Ejecuta tests con pytest"
+	@echo "  prepare-data    Organiza imágenes raw → classification/"
 	@echo "  train-clf       Entrena EfficientNet-B2 (Fase 1)"
 	@echo "  train-clf-cmp   Entrena ConvNeXt-Tiny (comparativo)"
 	@echo "  train-seg       Entrena YOLOv11-seg (Fase 2)"
@@ -33,6 +34,9 @@ format:
 
 test:
 	uv run pytest tests/ -v --cov=src --cov-report=term-missing
+
+prepare-data:
+	uv run prepare-data --src-dir data/raw/ --dest-dir data/processed/classification/
 
 train-clf:
 	uv run train-clf --config $(CONFIG_CLF)

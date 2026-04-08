@@ -5,7 +5,7 @@ project:
 
 data:
   root: "data/processed/segmentation"
-  classes: ["conidias", "conidias_multiseptadas", "hifas"]
+  classes: ["conidia", "conidia-multiseptada", "hifa"]
   n_annotated: 116
   image_size: 640
   annotation_format: "yolo_seg"
@@ -20,12 +20,15 @@ model:
   num_classes: 3
 
 training:
-  epochs: 100
+  epochs: 200
   batch_size: 16
   imgsz: 640
   lr0: 1.0e-3
   lrf: 0.01
   patience: 20
+  degrees: 180.0
+  mosaic: 0.5
+  copy_paste: 0.6
 
 metrics:
   report: ["mAP50", "mAP50_95", "precision", "recall", "iou_per_class"]
