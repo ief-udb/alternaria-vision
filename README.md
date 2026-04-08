@@ -3,7 +3,6 @@
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.3-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![Ultralytics](https://img.shields.io/badge/YOLOv11-seg-00BFFF?logo=ultralytics&logoColor=white)](https://github.com/ultralytics/ultralytics)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/TU_USUARIO/alternaria-vision/actions/workflows/ci.yml/badge.svg)](https://github.com/TU_USUARIO/alternaria-vision/actions)
 
 ---
@@ -42,7 +41,6 @@ técnica con rigor investigativo para posible publicación.
 - [Métricas y objetivos clínicos](#métricas-y-objetivos-clínicos)
 - [Decisiones técnicas](#decisiones-técnicas)
 - [Citación](#citación)
-- [Licencia](#licencia)
 
 ---
 

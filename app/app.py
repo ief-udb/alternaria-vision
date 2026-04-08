@@ -512,7 +512,7 @@ def render_sidebar() -> tuple[float, float, float, bool]:
         st.divider()
         st.markdown(
             "<small style='color:#7a7974'>"
-            "AlternariaVision v1.0.0 · MIT License<br>"
+            "AlternariaVision v1.0.0<br>"
             "Universidad de Boyacá · 2026"
             "</small>",
             unsafe_allow_html=True,
