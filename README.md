@@ -1,9 +1,36 @@
-# Prototipo de Visión Artificial para Identificación de *Alternaria alternata*
+# Alternaria Vision
+
+**Prototipo de visión artificial para clasificación y segmentación de *Alternaria alternata* en microscopía**
+
+*Computer vision prototype for classification and segmentation of *Alternaria alternata* in microscopy*
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.3-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![Ultralytics](https://img.shields.io/badge/YOLOv11-seg-00BFFF?logo=ultralytics&logoColor=white)](https://github.com/ultralytics/ultralytics)
-[![CI](https://github.com/TU_USUARIO/alternaria-vision/actions/workflows/ci.yml/badge.svg)](https://github.com/TU_USUARIO/alternaria-vision/actions)
+
+> **Instituto de Estudios del Futuro — Universidad de Boyacá** (Tunja, Colombia)
+
+---
+
+## Tabla de Contenidos / Table of Contents
+
+- [Resumen](#resumen)
+- [Contexto micológico](#contexto-micológico)
+- [Arquitectura del sistema](#arquitectura-del-sistema)
+- [Características principales](#características-principales)
+- [Requisitos](#requisitos)
+- [Instalación y despliegue](#instalación-y-despliegue)
+- [Uso](#uso)
+  - [Preparación de datos](#1-preparación-de-datos)
+  - [Fase 1 — Clasificación](#2-fase-1--clasificación-binaria)
+  - [Fase 2 — Segmentación](#3-fase-2--segmentación-de-estructuras)
+  - [Interfaz web](#4-interfaz-web-streamlit)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Métricas y objetivos clínicos](#métricas-y-objetivos-clínicos)
+- [Decisiones técnicas](#decisiones-técnicas)
+- [Citación](#citación)
+- [English](#english)
+- [Licencia](#licencia--license)
 
 ---
 
@@ -15,32 +42,14 @@ de *Alternaria alternata* en imágenes de microscopía óptica.
 
 La herramienta integra dos componentes de deep learning:
 
-1. **Clasificación binaria** (Fase 1): determina si una preparación microscópica
-   contiene *Alternaria alternata* o corresponde a otro hongo.
-2. **Segmentación de instancias** (Fase 2): detecta y delimita las estructuras
-   morfológicas diagnósticas — conidias, conidias multiseptadas e hifas.
+| Fase | Tarea | Modelo | Detalle |
+|------|-------|--------|---------|
+| **Fase 1** | Clasificación binaria | EfficientNet-B2 (+ comparativo ConvNeXt-Tiny) | *Alternaria alternata* vs. otros hongos |
+| **Fase 2** | Segmentación de instancias | YOLOv11n-seg | Conidias · Conidias multiseptadas · Hifas |
 
 Su propósito es **pedagógico**, orientado a estudiantes de Bacteriología
 en la asignatura de Micología, y **científico**, documentando cada decisión
-técnica con rigor investigativo para posible publicación.
-
----
-
-## Tabla de Contenidos
-
-- [Contexto micológico](#contexto-micológico)
-- [Arquitectura del sistema](#arquitectura-del-sistema)
-- [Requisitos](#requisitos)
-- [Instalación](#instalación)
-- [Estructura del repositorio](#estructura-del-repositorio)
-- [Flujo de trabajo](#flujo-de-trabajo)
-  - [Preparación de datos](#1-preparación-de-datos)
-  - [Fase 1 — Clasificación](#2-fase-1--clasificación-binaria)
-  - [Fase 2 — Segmentación](#3-fase-2--segmentación-de-estructuras)
-  - [Interfaz web](#4-interfaz-web-streamlit)
-- [Métricas y objetivos clínicos](#métricas-y-objetivos-clínicos)
-- [Decisiones técnicas](#decisiones-técnicas)
-- [Citación](#citación)
+técnica con rigor investigativo. 
 
 ---
 
@@ -59,11 +68,11 @@ clasificado en el orden **Pleosporales**, familia **Pleosporaceae**.
 | **Conidias multiseptadas** | Conidias con ≥3 septos transversales visibles; cadenas acrópetas | Confirma madurez y esporulación activa |
 | **Hifas** | Septadas, pigmentadas (marrón oliváceo), ramificadas, 2–6 µm diámetro | Contexto estructural del crecimiento |
 
-#### Dimensiones de referencia (cultivo SDA, 25°C)
+#### Dimensiones de referencia (cultivo SDA, 25 °C)
 
 - Conidias: 7–10 × 23–34 µm (rango reportado hasta 50 µm en hábitat natural)
 - Conidióforos: 40–70 × 3–4 µm, septados, con aspecto en zigzag
-- Temperatura óptima de crecimiento: 25–28°C
+- Temperatura óptima de crecimiento: 25–28 °C
 
 #### Relevancia clínica
 
@@ -73,7 +82,7 @@ clasificado en el orden **Pleosporales**, familia **Pleosporaceae**.
 - **Queratitis fúngica** (infección ocular post-traumática)
 - Oportunista en trasplantados, pacientes con SIDA y neutropénicos
 
-> ⚠️ **Nota clínica**: El diagnóstico definitivo requiere correlación con
+> **Nota clínica**: El diagnóstico definitivo requiere correlación con
 > cultivo e historia clínica. Este prototipo es una herramienta educativa
 > de apoyo, no un dispositivo diagnóstico certificado.
 
@@ -81,30 +90,43 @@ clasificado en el orden **Pleosporales**, familia **Pleosporaceae**.
 
 ## Arquitectura del Sistema
 
-```mermaid 
-┌─────────────────────────────────────────────────────────────────┐
-│ INTERFAZ WEB (Streamlit) │
-│ Carga imagen → Clasificar → Segmentar → Educar │
-└───────────────┬─────────────────────────┬───────────────────────┘
-│ │
-┌───────────▼──────────┐ ┌───────────▼──────────────┐
-│ FASE 1 │ │ FASE 2 │
-│ Clasificación │ │ Segmentación │
-│ EfficientNet-B2 │ │ YOLOv11n-seg │
-│ (binaria) │ │ (3 clases) │
-│ │ │ │
-│ Alternaria vs │ │ conidias │
-│ Otros hongos │ │ conidias_multiseptadas │
-│ │ │ hifas │
-└───────────┬──────────┘ └───────────┬───────────────┘
-│ │
-┌───────────▼─────────────────────────▼───────────────┐
-│ DATASET DE MICROSCOPÍA │
-│ data/processed/classification/ (Fase 1) │
-│ data/processed/segmentation/ (Fase 2) │
-│ Anotaciones: X-AnyLabeling JSON (SAM-base) │
-└─────────────────────────────────────────────────────┘
 ```
+┌─────────────────────────────────────────────────────────────────┐
+│                    INTERFAZ WEB (Streamlit)                     │
+│        Carga imagen → Clasificar → Segmentar → Educar          │
+└───────────────┬─────────────────────────┬───────────────────────┘
+                │                         │
+  ┌─────────────▼──────────┐  ┌───────────▼──────────────┐
+  │       FASE 1           │  │        FASE 2            │
+  │    Clasificación       │  │     Segmentación         │
+  │   EfficientNet-B2      │  │     YOLOv11n-seg         │
+  │     (binaria)          │  │      (3 clases)          │
+  │                        │  │                          │
+  │   Alternaria vs        │  │  conidia                 │
+  │   Otros hongos         │  │  conidia-multiseptada    │
+  │                        │  │  hifa                    │
+  └─────────────┬──────────┘  └───────────┬──────────────┘
+                │                         │
+  ┌─────────────▼─────────────────────────▼───────────────┐
+  │             DATASET DE MICROSCOPÍA                    │
+  │   data/processed/classification/   (Fase 1)          │
+  │   data/processed/segmentation/     (Fase 2)          │
+  │   Anotaciones: X-AnyLabeling JSON (SAM-base)         │
+  └───────────────────────────────────────────────────────┘
+```
+
+---
+
+## Características Principales
+
+- **Fine-tuning en dos etapas** (backbone congelado → descongelamiento progresivo)
+- **Aumentación avanzada** con Albumentations (rotaciones, color jitter, ruido gaussiano, CLAHE, etc.)
+- **Entrenamiento con precisión mixta** (AMP) y gradient clipping
+- **Interpretabilidad** mediante Grad-CAM++
+- **Exportación a ONNX** para inferencia en producción
+- **Aplicación interactiva** con Streamlit
+- **CI/CD** con GitHub Actions (lint, format, tests)
+
 ---
 
 ## Requisitos
@@ -113,7 +135,7 @@ clasificado en el orden **Pleosporales**, familia **Pleosporaceae**.
 
 | Componente | Mínimo | Recomendado |
 |---|---|---|
-| GPU | — (CPU posible) | NVIDIA ≥4 GB VRAM |
+| GPU | — (CPU posible) | NVIDIA ≥ 4 GB VRAM |
 | RAM | 8 GB | 16 GB |
 | Almacenamiento | 5 GB | 20 GB |
 
@@ -123,17 +145,20 @@ clasificado en el orden **Pleosporales**, familia **Pleosporaceae**.
 ### Software
 
 - Python 3.11
-- [uv](https://github.com/astral-sh/uv) ≥ 0.4.0 (gestor de entorno)
+- [uv](https://docs.astral.sh/uv/) ≥ 0.4.0 (gestor de entorno y paquetes)
 - Git ≥ 2.40
 
 ---
 
-## Instalación
+## Instalación y Despliegue
+
+A continuación se describe el proceso completo para que cualquier persona pueda
+clonar, configurar y ejecutar el proyecto en su máquina local o en Google Colab.
 
 ### 1. Clonar el repositorio
 
 ```bash
-git clone ttps://github.com/ief-udb/alternaria-vision.git
+git clone https://github.com/ief-udb/alternaria-vision.git
 cd alternaria-vision
 ```
 
@@ -151,95 +176,60 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 ```bash
 # Instalar Python 3.11 y dependencias de producción
-uv sync
+make setup
+# Equivale a: uv sync
 
-# Incluir herramientas de desarrollo (pytest, ruff, black, pre-commit)
-uv sync --extra dev
-
-# Activar pre-commit hooks
-uv run pre-commit install
+# Incluir herramientas de desarrollo (pytest, ruff, black, pre-commit, jupyter)
+make setup-dev
+# Equivale a: uv sync --extra dev && uv run pre-commit install
 ```
 
 ### 4. Verificar la instalación
 
 ```bash
-uv run pytest tests/ -v
+make test
+# Equivale a: uv run pytest tests/ -v --cov=src --cov-report=term-missing
 ```
 
 Todos los tests deben pasar sin requerir GPU ni datos reales.
 
----
+### Despliegue en Google Colab
 
-## Estructura del Repositorio
+```python
+# Instalar uv e instalar dependencias
+!pip install -q uv
+!uv sync
 
-```mermaid
-alternaria-vision/
-│
-├── .github/workflows/ci.yml # CI: lint + tests automáticos
-├── configs/
-│ ├── train_clf.yaml # Hiperparámetros Fase 1
-│ └── train_seg.yaml # Hiperparámetros Fase 2
-│
-├── data/
-│ ├── raw/ # Imágenes originales (.gitignore)
-│ ├── processed/
-│ │ ├── classification/ # Estructura binaria para Fase 1
-│ │ │ ├── alternaria/
-│ │ │ └── otros_hongos/
-│ │ └── segmentation/ # Dataset YOLO para Fase 2
-│ │ ├── images/{train,val,test}/
-│ │ ├── labels/{train,val,test}/
-│ │ └── data.yaml
-│ └── splits/ # train.txt, val.txt, test.txt
-│
-├── src/
-│ ├── data/
-│ │ ├── augmentations.py # Pipelines Albumentations
-│ │ └── dataset.py # MicroscopyDataset (PyTorch)
-│ ├── models/
-│ │ ├── classifier.py # AlternariaCLF (EfficientNet-B2)
-│ │ └── segmenter.py # AlternariaSEG (YOLOv11-seg)
-│ ├── training/
-│ │ ├── train_clf.py # Entrenamiento Fase 1
-│ │ └── train_seg.py # Entrenamiento Fase 2
-│ ├── evaluation/
-│ │ ├── metrics.py # Métricas clínicas + visualizaciones
-│ │ └── evaluate.py # CLI de evaluación standalone
-│ └── utils/
-│ ├── device.py # Detección automática GPU/MPS/CPU
-│ ├── logger.py # Logger Rich centralizado
-│ ├── prepare_data.py # Organización de datos crudos
-│ └── converter.py # X-AnyLabeling JSON → YOLO .txt
-│
-├── app/
-│ └── app.py # Interfaz web Streamlit
-│
-├── tests/
-│ ├── test_dataset.py
-│ └── test_model.py
-│
-├── notebooks/
-│ ├── 01_EDA_microscopia.ipynb
-│ ├── 02_augmentation_preview.ipynb
-│ └── 03_metricas_analisis.ipynb
-│
-├── checkpoints/
-│ ├── classification/ # best_model.pt, last_model.pt
-│ └── segmentation/ # best_model.pt
-│
-├── outputs/ # Métricas, curvas, Grad-CAM
-├── logs/ # Archivos de log de entrenamiento
-├── pyproject.toml # Dependencias y scripts (uv)
-├── Makefile # Comandos de uso frecuente
-└── README.md
-
+# Lanzar la aplicación con túnel público
+!uv run streamlit run app/app.py &
+!npx localtunnel --port 8501
 ```
---
-
 
 ---
 
-## Flujo de Trabajo
+## Uso
+
+### Comandos disponibles
+
+Todos los comandos frecuentes están centralizados en el `makefile`:
+
+```bash
+make help             # Lista todos los comandos disponibles
+make setup            # Instala dependencias de producción
+make setup-dev        # Instala dependencias + desarrollo
+make lint             # Verifica estilo con Ruff
+make format           # Formatea con Black + Ruff
+make test             # Ejecuta tests con pytest
+make prepare-data     # Organiza imágenes raw → classification/
+make train-clf        # Entrena EfficientNet-B2 (Fase 1)
+make train-clf-cmp    # Entrena ConvNeXt-Tiny (comparativo)
+make train-seg        # Entrena YOLOv11-seg (Fase 2)
+make convert-ann      # JSON X-AnyLabeling → YOLO format
+make app              # Lanza Streamlit
+make clean            # Limpia artefactos
+```
+
+---
 
 ### 1. Preparación de Datos
 
@@ -249,11 +239,11 @@ Organiza tus imágenes en subcarpetas por especie dentro de `data/raw/`:
 
 ```
 data/raw/
-alternaria/ ← Imágenes de Alternaria alternata
-aspergillus_niger/ ← Otros hongos
-fusarium_solani/
-...
-
+  alternaria/          ← Imágenes de Alternaria alternata
+  aspergillus_niger/   ← Otros hongos
+  fusarium_solani/
+  ...
+```
 
 Luego ejecuta:
 
@@ -263,13 +253,13 @@ make prepare-data
 # uv run prepare-data --src-dir data/raw/ --dest-dir data/processed/classification/
 ```
 
-Esto genera `data/processed/classification/inventario_dataset.csv`
-con el recuento de imágenes por clase.
+Esto genera `data/processed/classification/` con la estructura necesaria
+para el entrenamiento.
 
 #### Segmentación (Fase 2)
 
 1. Anota tus imágenes en **X-AnyLabeling** usando el modelo SAM-base.
-   Clases a definir: `conidias`, `conidias_multiseptadas`, `hifas`.
+   Clases a definir: `conidia`, `conidia-multiseptada`, `hifa`.
 2. Exporta las anotaciones como JSON (una por imagen).
 3. Convierte al formato YOLO:
 
@@ -277,12 +267,9 @@ con el recuento de imágenes por clase.
 make convert-ann
 # Equivale a:
 # uv run convert-ann data/raw/annotations/ \
-#     data/processed/segmentation/labels/train/ \
-#     --images-dir data/raw/images/ \
-#     --images-out data/processed/segmentation/images/train/
+#     data/processed/segmentation/labels/ \
+#     --images-dir data/raw/images/
 ```
-
-Esto genera automáticamente `data/processed/segmentation/data.yaml`.
 
 ---
 
@@ -304,8 +291,8 @@ uv run train-clf --resume checkpoints/classification/last_model.pt
 El entrenamiento ejecuta automáticamente:
 
 - **Fase A** (5 épocas): Solo la cabeza clasificadora con backbone congelado.
-- **Fase B** (≤30 épocas): Fine-tuning de los últimos 3 bloques del backbone
-  con CosineAnnealingLR y early stopping (patience=10).
+- **Fase B** (≤ 30 épocas): Fine-tuning de los últimos 3 bloques del backbone
+  con CosineAnnealingLR y early stopping (patience = 10).
 
 Los resultados se guardan en `outputs/alternaria-clf/`:
 - `confusion_matrix.png`
@@ -357,16 +344,60 @@ make app
 
 La interfaz estará disponible en `http://localhost:8501`.
 
-#### En Google Colab
+---
 
-```python
-# Instalar dependencias
-!pip install -q uv
-!uv sync
+## Estructura del Proyecto
 
-# Lanzar con túnel público
-!uv run streamlit run app/app.py &
-!npx localtunnel --port 8501
+```
+alternaria-vision/
+├── .github/workflows/ci.yml    # CI: lint + tests automáticos
+├── app/
+│   ├── app.py                  # Interfaz web Streamlit
+│   └── assets/                 # Recursos estáticos
+├── configs/
+│   ├── train_clf.yaml          # Hiperparámetros Fase 1
+│   └── train_seg.yaml          # Hiperparámetros Fase 2
+├── data/
+│   ├── raw/                    # Imágenes originales (.gitignore)
+│   ├── processed/
+│   │   ├── classification/     # Estructura binaria para Fase 1
+│   │   │   ├── alternaria/
+│   │   │   └── otros_hongos/
+│   │   └── segmentation/       # Dataset YOLO para Fase 2
+│   │       ├── images/
+│   │       └── labels/
+│   └── splits/                 # Particiones train/val/test
+├── src/
+│   ├── data/
+│   │   ├── augmentations.py    # Pipelines Albumentations
+│   │   └── dataset.py          # MicroscopyDataset (PyTorch)
+│   ├── models/
+│   │   ├── classifier.py       # AlternariaCLF (EfficientNet-B2)
+│   │   └── segmenter.py        # AlternariaSEG (YOLOv11-seg)
+│   ├── training/
+│   │   ├── train_clf.py        # Entrenamiento Fase 1
+│   │   └── train_seg.py        # Entrenamiento Fase 2
+│   ├── evaluation/
+│   │   ├── metrics.py          # Métricas clínicas + visualizaciones
+│   │   └── evaluate.py         # CLI de evaluación standalone
+│   └── utils/
+│       ├── device.py           # Detección automática GPU/MPS/CPU
+│       ├── logger.py           # Logger Rich centralizado
+│       ├── prepare_data.py     # Organización de datos crudos
+│       ├── split_data.py       # División train/val/test
+│       └── converter.py        # X-AnyLabeling JSON → YOLO .txt
+├── tests/
+│   ├── test_datasets.py        # Tests de carga de datos
+│   └── test_model.py           # Tests de arquitectura de modelos
+├── notebooks/                  # Notebooks de exploración y análisis
+├── checkpoints/
+│   ├── classification/         # best_model.pt, last_model.pt
+│   └── segmentation/           # best_model.pt
+├── outputs/                    # Métricas, curvas, Grad-CAM
+├── logs/                       # Archivos de log de entrenamiento
+├── makefile                    # Comandos automatizados
+├── pyproject.toml              # Dependencias y scripts (uv/hatch)
+└── README.md
 ```
 
 ---
@@ -392,12 +423,17 @@ El umbral óptimo se determina por el **índice de Youden J**
 | Métrica | Objetivo mínimo |
 |---|---|
 | **mAP50-seg** (global) | ≥ 0.70 |
-| **mAP50-seg** (conidias) | ≥ 0.75 |
-| **mAP50-seg** (hifas) | ≥ 0.65 |
-| **mAP50-seg** (conidias_multiseptadas) | ≥ 0.60 |
+| **mAP50-seg** (conidia) | ≥ 0.75 |
+| **mAP50-seg** (hifa) | ≥ 0.65 |
+| **mAP50-seg** (conidia-multiseptada) | ≥ 0.60 |
 
-> Los objetivos de conidias_multiseptadas son más flexibles dada
+> Los objetivos de conidia-multiseptada son más flexibles dada
 > la menor frecuencia de esta clase en el dataset inicial.
+
+**Métricas reportadas:**
+
+- **Clasificación:** Accuracy · Sensitivity · Specificity · Precision · F1-Score · AUC-ROC
+- **Segmentación:** mAP@50 · mAP@50:95 · Precision · Recall · IoU por clase
 
 ---
 
@@ -409,9 +445,9 @@ El umbral óptimo se determina por el **índice de Youden J**
 |---|---|---|---|
 | Params | 138 M | 86 M | **9.1 M** |
 | VRAM mín. | 6 GB | 8 GB | **2 GB** |
-| Datasets pequeños (<500 imgs) | Regular | ⚠️ Sobreajuste | ✅ Robusto |
-| Transfer learning | Bueno | Bueno | ✅ Excelente |
-| Explicabilidad (Grad-CAM) | Básica | Attention maps | ✅ Grad-CAM++ |
+| Datasets pequeños (< 500 imgs) | Regular | Sobreajuste | Robusto |
+| Transfer learning | Bueno | Bueno | Excelente |
+| Explicabilidad (Grad-CAM) | Básica | Attention maps | Grad-CAM++ |
 
 EfficientNet-B2 ofrece el mejor balance entre rendimiento y eficiencia
 computacional para datasets de microscopía médica con < 500 imágenes por clase.
@@ -428,13 +464,11 @@ computacional para datasets de microscopía médica con < 500 imágenes por clas
 
 ### ¿Por qué Streamlit y no Gradio o React?
 
-Streamlit fue seleccionado sobre las alternativas por:
 - **Integración nativa** con PyTorch/NumPy sin API REST intermedia.
 - **`st.session_state`**: gestión de estado multi-paso para el flujo
   educativo (carga → predicción → segmentación → información).
 - **Visualizaciones científicas** con Plotly integrado.
 - **Despliegue gratuito** en Streamlit Community Cloud.
-- Tiempo de desarrollo estimado: 3–5 días vs. 2–4 semanas (React).
 
 ### ¿Por qué Albumentations para aumentación y no torchvision?
 
@@ -460,8 +494,8 @@ Si utilizas este trabajo en publicaciones académicas, por favor cita:
   title     = {Prototipo de Visión Artificial para Identificación de
                \textit{Alternaria alternata} mediante Deep Learning},
   year      = {2026},
-  url       = {https://github.com/TU_USUARIO/alternaria-vision},
-  version   = {1.0.0},
+  url       = {https://github.com/ief-udb/alternaria-vision},
+  version   = {0.1.0},
   note      = {Herramienta pedagógica para la asignatura de Micología,
                Programa de Bacteriología}
 }
@@ -484,9 +518,58 @@ Si utilizas este trabajo en publicaciones académicas, por favor cita:
 
 ---
 
-## Contacto
+## English
 
-**Instituto de Estudios del Futuro** | 
+### Description
+
+Alternaria Vision is a two-phase computer vision system designed for automated analysis of microscopic fungal images:
+
+| Phase | Task | Model | Detail |
+|-------|------|-------|--------|
+| **Phase 1** | Binary classification | EfficientNet-B2 (+ ConvNeXt-Tiny benchmark) | *Alternaria alternata* vs. other fungi |
+| **Phase 2** | Instance segmentation | YOLOv11n-seg | Conidia · Multiseptate conidia · Hyphae |
+
+### Key Features
+
+- **Two-stage fine-tuning** (frozen backbone → progressive unfreezing)
+- **Advanced augmentation** with Albumentations (rotations, color jitter, Gaussian noise, CLAHE, etc.)
+- **Mixed precision training** (AMP) with gradient clipping
+- **Interpretability** via Grad-CAM++
+- **ONNX export** for production inference
+- **Interactive application** with Streamlit
+- **CI/CD** with GitHub Actions (lint, format, tests)
+
+### Quick Start
+
+```bash
+# Clone and install
+git clone https://github.com/ief-udb/alternaria-vision.git
+cd alternaria-vision
+make setup          # production dependencies
+make setup-dev      # + development tools
+
+# Train models
+make train-clf      # Phase 1: EfficientNet-B2 classifier
+make train-seg      # Phase 2: YOLOv11n-seg segmenter
+
+# Launch web app
+make app            # http://localhost:8501
+
+# Quality checks
+make lint           # Ruff linting
+make format         # Black + Ruff formatting
+make test           # pytest with coverage
+```
+
+### Reported Metrics
+
+**Classification:** Accuracy · Sensitivity · Specificity · Precision · F1-Score · AUC-ROC
+
+**Segmentation:** mAP@50 · mAP@50:95 · Precision · Recall · IoU per class
+
+---
+
+**Instituto de Estudios del Futuro** |
 Universidad de Boyacá — Tunja, Colombia
 
 > *"La inteligencia artificial al servicio del diagnóstico micológico

@@ -3,29 +3,44 @@
 __pycache__/
 *.py[cod]
 
-# Datos (demasiado pesados para Git)
-data/raw/
-data/processed/
-data/splits/
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-!data/splits/.gitkeep
+# Datos - ignorar archivos pero preservar estructura de carpetas
+data/**/*.jpg
+data/**/*.jpeg
+data/**/*.png
+data/**/*.bmp
+data/**/*.tiff
+data/**/*.tif
+data/**/*.webp
+data/**/*.txt
+data/**/*.json
+data/**/*.xml
+data/**/*.yaml
+data/**/*.yml
+data/**/*.csv
+data/**/*.npy
+data/**/*.npz
+data/**/*.pkl
+data/**/*.cache
 
-# Pesos de modelos temporales y de terceros
+# Pesos de modelos
 *.pt
 *.pth
 *.onnx
-runs/
-outputs/
+
+# Salidas de entrenamiento
+runs/**
+!runs/.gitkeep
+outputs/**
+!outputs/.gitkeep
 
 # Excepto los modelos finales para produccion (Streamlit)
-checkpoints/
 !checkpoints/classification/best_model.pt
 !checkpoints/segmentation/best_model.pt
 
 # Logs
 *.log
-logs/
+logs/**
+!logs/.gitkeep
 mlruns/
 
 # Jupyter
@@ -40,6 +55,9 @@ mlruns/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Linting
+.ruff_cache/
 
 # Builds
 dist/
