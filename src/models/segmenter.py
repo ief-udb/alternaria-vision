@@ -121,6 +121,14 @@ class AlternariaSEG:
         project: str = "outputs/segmentation",
         name: str = "alternaria_seg",
         resume: bool = False,
+        # ── Nuevos parámetros para experimentos ──────────────────────
+        optimizer: str = "auto",
+        cos_lr: bool = False,
+        close_mosaic: int = 10,
+        warmup_epochs: float = 3.0,
+        mixup: float = 0.0,
+        scale: float = 0.0,
+        translate: float = 0.1,
     ) -> Any:
         """
         Lanza el entrenamiento de YOLOv11-seg.
@@ -155,6 +163,21 @@ class AlternariaSEG:
             Nombre del experimento (subdirectorio en project/).
         resume : bool
             Reanudar entrenamiento desde el último checkpoint.
+        optimizer : str
+            Algoritmo de optimización: 'SGD', 'Adam', 'AdamW', 'auto'.
+            Default: 'auto'.
+        cos_lr : bool
+            Si True, usa cosine annealing LR scheduler. Default: False.
+        close_mosaic : int
+            Épocas antes del final para desactivar mosaic. Default: 10.
+        warmup_epochs : float
+            Épocas de warmup del learning rate. Default: 3.0.
+        mixup : float
+            Probabilidad de augmentación mixup. Default: 0.0.
+        scale : float
+            Rango de escalado aleatorio de imagen. Default: 0.0.
+        translate : float
+            Fracción de traslación de imagen. Default: 0.1.
 
         Returns
         -------
@@ -164,6 +187,7 @@ class AlternariaSEG:
         logger.info(
             f"Iniciando entrenamiento YOLOv11-seg | "
             f"epochs={epochs} | imgsz={imgsz} | batch={batch} | "
+            f"optimizer={optimizer} | cos_lr={cos_lr} | "
             f"device={self.device}"
         )
         results = self.model.train(
@@ -181,7 +205,15 @@ class AlternariaSEG:
             project=project,
             name=name,
             resume=resume,
+            # Optimizador y scheduler
+            optimizer=optimizer,
+            cos_lr=cos_lr,
+            close_mosaic=close_mosaic,
+            warmup_epochs=warmup_epochs,
             # Aumentaciones adicionales para microscopía
+            mixup=mixup,
+            scale=scale,
+            translate=translate,
             hsv_h=0.5,  # Variación de matiz (colorante)
             hsv_s=0.5,  # Variación de saturación
             hsv_v=0.3,  # Variación de valor/brillo
@@ -190,6 +222,7 @@ class AlternariaSEG:
             # Desactivar augmentaciones no aplicables a microscopía
             perspective=0.0,
             shear=0.0,
+            workers=0,  # Prevenir WinError 1455 en Windows
         )
         logger.info("Entrenamiento completado.")
         return results

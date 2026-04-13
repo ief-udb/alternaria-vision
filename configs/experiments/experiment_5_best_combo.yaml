@@ -1,0 +1,60 @@
+# ============================================================
+# Experimento 5 — Combinación agresiva (lo mejor de todo)
+# ============================================================
+# Objetivo: Combinar las mejores estrategias de los experimentos
+#           anteriores para obtener el máximo rendimiento.
+#
+# Combinación:
+#   - yolo11s-seg (modelo más grande, de exp 3)
+#   - imgsz=896 (resolución alta pero manejable, intermedio exp 4)
+#   - copy_paste=0.9 (máximo para clases raras, de exp 2)
+#   - mixup=0.2 (mezcla agresiva)
+#   - mosaic=1.0 (siempre activo hasta close_mosaic épocas del fin)
+#   - patience=30 (más paciencia antes de early stopping)
+#   - epochs=300 (más tiempo para converger)
+# ============================================================
+
+project:
+  name: "alternaria-seg"
+  version: "1.0.0"
+  seed: 42
+
+data:
+  root: "data/processed/segmentation"
+  classes: ["conidia", "conidia-multiseptada", "hifa"]
+  image_size: 896
+  annotation_format: "yolo_seg"
+
+model:
+  architecture: "yolo11s-seg"
+  pretrained_weights: "yolo11s-seg.pt"
+  num_classes: 3
+
+training:
+  epochs: 300
+  batch_size: 2
+  imgsz: 896
+  lr0: 5.0e-4
+  lrf: 0.01
+  patience: 30
+
+  # Optimizador y scheduler
+  optimizer: "AdamW"
+  cos_lr: true
+  warmup_epochs: 5.0
+  close_mosaic: 15
+
+  # Aumentación agresiva máxima
+  degrees: 180.0
+  mosaic: 1.0
+  copy_paste: 0.9
+  mixup: 0.2
+  scale: 0.5
+  translate: 0.2
+
+metrics:
+  report: ["mAP50", "mAP50_95", "precision", "recall", "iou_per_class"]
+
+checkpoints:
+  save_dir: "checkpoints/segmentation"
+  monitor: "mAP50"

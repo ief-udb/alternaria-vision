@@ -222,6 +222,14 @@ def main(
         project="outputs/segmentation",
         name="alternaria_seg",
         resume=resume,
+        # Nuevos parámetros (con defaults para compatibilidad)
+        optimizer=train_cfg.get("optimizer", "auto"),
+        cos_lr=train_cfg.get("cos_lr", False),
+        close_mosaic=train_cfg.get("close_mosaic", 10),
+        warmup_epochs=train_cfg.get("warmup_epochs", 3.0),
+        mixup=train_cfg.get("mixup", 0.0),
+        scale=train_cfg.get("scale", 0.0),
+        translate=train_cfg.get("translate", 0.1),
     )
 
     # ── Copiar best.pt al directorio de checkpoints del proyecto ─────

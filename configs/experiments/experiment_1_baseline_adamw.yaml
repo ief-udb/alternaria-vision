@@ -1,0 +1,58 @@
+# ============================================================
+# Experimento 1 — Baseline mejorado: AdamW + Cosine LR
+# ============================================================
+# Objetivo: Establecer un baseline sólido con optimizador moderno
+#           y scheduler suave, sin cambiar aumentación.
+#
+# Cambios vs configuración original:
+#   - Optimizador: SGD → AdamW (mejor generalización en datasets pequeños)
+#   - Learning rate: 1e-3 → 5e-4 (más conservador con AdamW)
+#   - Scheduler: linear → cosine (convergencia más suave)
+#   - Warmup: 3 → 5 épocas (estabilizar inicio)
+#   - close_mosaic: 0 → 15 (estabilizar últimas épocas)
+# ============================================================
+
+project:
+  name: "alternaria-seg"
+  version: "1.0.0"
+  seed: 42
+
+data:
+  root: "data/processed/segmentation"
+  classes: ["conidia", "conidia-multiseptada", "hifa"]
+  image_size: 640
+  annotation_format: "yolo_seg"
+
+model:
+  architecture: "yolo11n-seg"
+  pretrained_weights: "yolo11n-seg.pt"
+  num_classes: 3
+
+training:
+  epochs: 200
+  batch_size: 16
+  imgsz: 640
+  lr0: 5.0e-4
+  lrf: 0.01
+  patience: 20
+  
+  # Optimizador y scheduler
+  optimizer: "AdamW"
+  cos_lr: true
+  warmup_epochs: 5.0
+  close_mosaic: 15
+  
+  # Aumentación (misma que original)
+  degrees: 180.0
+  mosaic: 0.5
+  copy_paste: 0.6
+  mixup: 0.0
+  scale: 0.0
+  translate: 0.1
+
+metrics:
+  report: ["mAP50", "mAP50_95", "precision", "recall", "iou_per_class"]
+
+checkpoints:
+  save_dir: "checkpoints/segmentation"
+  monitor: "mAP50"

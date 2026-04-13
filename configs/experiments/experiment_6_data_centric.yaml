@@ -1,0 +1,59 @@
+# ============================================================
+# Experimento 6 — Data-Centric (Tiling + Oversampling)
+# ============================================================
+# Objetivo: Resolver el estancamiento analítico de conidias
+#           e hifas atacando directo al volumen y forma de los datos
+#           mediante recortes y duplicados offline (segmentation_v2).
+#
+# Configuración: Basado en el estable "Mejor Combo" o Exp 4:
+#   - Model: yolo11s-seg (Mejor visualización de estructuras abstractas)
+#   - imgsz: 640 (Los recortes ya son de 640px, no requerimos escalar a 1024)
+#   - batch_size: 8 (Al bajar resolución de 1024 o 896 -> 640, podemos subir el batch)
+#   - Data: segmentation_v2/data_v2.yaml
+# ============================================================
+
+project:
+  name: "alternaria-seg"
+  version: "1.0.0"
+  seed: 42
+
+data:
+  root: "data/processed/segmentation_v2"
+  classes: ["conidia", "conidia-multiseptada", "hifa"]
+  image_size: 640
+  annotation_format: "yolo_seg"
+  yaml_file: "data_v2.yaml"  # <--- Apuntando al nuevo metadata
+
+model:
+  architecture: "yolo11s-seg"
+  pretrained_weights: "yolo11s-seg.pt"
+  num_classes: 3
+
+training:
+  epochs: 300
+  batch_size: 8
+  imgsz: 640
+  lr0: 5.0e-4
+  lrf: 0.01
+  patience: 30
+
+  # Optimizador y scheduler
+  optimizer: "AdamW"
+  cos_lr: true
+  warmup_epochs: 5.0
+  close_mosaic: 15
+
+  # Aumentación moderada-activa (Offline ya suplió mucho)
+  degrees: 180.0
+  mosaic: 0.8
+  copy_paste: 0.5
+  mixup: 0.1
+  scale: 0.3
+  translate: 0.1
+
+metrics:
+  report: ["mAP50", "mAP50_95", "precision", "recall", "iou_per_class"]
+
+checkpoints:
+  save_dir: "checkpoints/segmentation_v2"
+  monitor: "mAP50"

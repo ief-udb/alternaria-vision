@@ -1,0 +1,57 @@
+# ============================================================
+# Experimento 4 — Alta resolución (1024px) + modelo nano
+# ============================================================
+# Objetivo: Preservar más detalle espacial para detectar hifas
+#           (estructuras finas y alargadas que se pierden a 640px).
+#           Las imágenes originales son ~1280×960.
+#
+# Cambios vs Experimento 1:
+#   - imgsz: 640 → 1024 (más detalle preservado)
+#   - batch_size: 16 → 4 (limitación de VRAM con resolución alta)
+#   - Aumentación moderada
+# ============================================================
+
+project:
+  name: "alternaria-seg"
+  version: "1.0.0"
+  seed: 42
+
+data:
+  root: "data/processed/segmentation"
+  classes: ["conidia", "conidia-multiseptada", "hifa"]
+  image_size: 1024
+  annotation_format: "yolo_seg"
+
+model:
+  architecture: "yolo11n-seg"
+  pretrained_weights: "yolo11n-seg.pt"
+  num_classes: 3
+
+training:
+  epochs: 200
+  batch_size: 2
+  imgsz: 1024
+  lr0: 5.0e-4
+  lrf: 0.01
+  patience: 25
+
+  # Optimizador y scheduler
+  optimizer: "AdamW"
+  cos_lr: true
+  warmup_epochs: 5.0
+  close_mosaic: 15
+
+  # Aumentación moderada
+  degrees: 180.0
+  mosaic: 0.6
+  copy_paste: 0.7
+  mixup: 0.1
+  scale: 0.3
+  translate: 0.15
+
+metrics:
+  report: ["mAP50", "mAP50_95", "precision", "recall", "iou_per_class"]
+
+checkpoints:
+  save_dir: "checkpoints/segmentation"
+  monitor: "mAP50"

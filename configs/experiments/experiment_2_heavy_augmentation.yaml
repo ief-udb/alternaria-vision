@@ -1,0 +1,59 @@
+# ============================================================
+# Experimento 2 — Aumentación agresiva para clases minoritarias
+# ============================================================
+# Objetivo: Usar copy-paste, mixup y mosaic intensivos para
+#           sintetizar más variedad, beneficiando clases raras
+#           (hifa ~4.1% y conidia ~14.5%).
+#
+# Cambios vs Experimento 1:
+#   - copy_paste: 0.6 → 0.8 (más duplicación de instancias)
+#   - mixup: 0.0 → 0.15 (mezcla de imágenes)
+#   - mosaic: 0.5 → 0.8 (más combinaciones de imágenes)
+#   - scale: 0.0 → 0.5 (multi-escala agresivo)
+#   - translate: 0.1 → 0.2 (más desplazamiento)
+# ============================================================
+
+project:
+  name: "alternaria-seg"
+  version: "1.0.0"
+  seed: 42
+
+data:
+  root: "data/processed/segmentation"
+  classes: ["conidia", "conidia-multiseptada", "hifa"]
+  image_size: 640
+  annotation_format: "yolo_seg"
+
+model:
+  architecture: "yolo11n-seg"
+  pretrained_weights: "yolo11n-seg.pt"
+  num_classes: 3
+
+training:
+  epochs: 200
+  batch_size: 8
+  imgsz: 640
+  lr0: 5.0e-4
+  lrf: 0.01
+  patience: 20
+
+  # Optimizador y scheduler (igual que exp 1)
+  optimizer: "AdamW"
+  cos_lr: true
+  warmup_epochs: 5.0
+  close_mosaic: 15
+
+  # Aumentación agresiva
+  degrees: 180.0
+  mosaic: 0.8
+  copy_paste: 0.8
+  mixup: 0.15
+  scale: 0.5
+  translate: 0.2
+
+metrics:
+  report: ["mAP50", "mAP50_95", "precision", "recall", "iou_per_class"]
+
+checkpoints:
+  save_dir: "checkpoints/segmentation"
+  monitor: "mAP50"
