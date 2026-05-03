@@ -41,6 +41,14 @@ CLASS_MAP: dict[str, int] = {
     "hifa": 2,
 }
 
+# Aliases para labels con typos comunes en anotaciones
+LABEL_ALIASES: dict[str, str] = {
+    "conidia multiseptada": "conidia-multiseptada",
+    "conidia_multiseptada": "conidia-multiseptada",
+    "conidias": "conidia",
+    "hifas": "hifa",
+}
+
 
 def _normalize_points(points: list, width: int, height: int) -> list[str]:
     """Normaliza coordenadas de píxeles al rango [0, 1]."""
@@ -83,6 +91,7 @@ def convert_single(
     with open(txt_path, "w") as f_out:
         for shape in data.get("shapes", []):
             label = shape.get("label", "").strip().lower()
+            label = LABEL_ALIASES.get(label, label)
             stype = shape.get("shape_type", "")
             pts = shape.get("points", [])
 

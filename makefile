@@ -1,4 +1,4 @@
-.PHONY: help setup setup-dev lint format test prepare-data train-clf train-seg run-experiments app clean
+.PHONY: help setup setup-dev lint format test prepare-data train-clf train-seg run-experiments pipeline-seg app clean
 
 PYTHON     := uv run python
 CONFIG_CLF := configs/train_clf.yaml
@@ -16,6 +16,7 @@ help:
 	@echo "  train-seg       Entrena YOLOv11-seg (Fase 2)"
 	@echo "  convert-ann     JSON X-AnyLabeling → YOLO format"
 	@echo "  run-experiments Ejecuta pipeline de experimentos de segmentación"
+	@echo "  pipeline-seg    Pipeline completo: preparar datos + aumentar + entrenar"
 	@echo "  app             Lanza Streamlit"
 	@echo "  clean           Limpia artefactos"
 
@@ -50,6 +51,9 @@ train-seg:
 
 run-experiments:
 	uv run python src/training/run_experiments.py
+
+pipeline-seg:
+	uv run python src/training/prepare_and_train.py --clean
 
 convert-ann:
 	uv run convert-ann data/raw/annotations/ \

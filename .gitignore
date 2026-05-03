@@ -36,6 +36,7 @@ outputs/**
 # Excepto los modelos finales para produccion (Streamlit)
 !checkpoints/classification/best_model.pt
 !checkpoints/segmentation/best_model.pt
+!checkpoints/segmentation_v3/best_model.pt 
 
 # Logs
 *.log

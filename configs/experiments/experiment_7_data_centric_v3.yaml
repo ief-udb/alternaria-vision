@@ -1,0 +1,60 @@
+# ============================================================
+# Experimento 7 — Data-Centric V3 (Dataset Expandido)
+# ============================================================
+# Objetivo: Entrenar con el dataset expandido que incluye nuevas
+#           imágenes anotadas (119 imgs, ~118 anotaciones).
+#           Usa el pipeline completo: Tiling + Oversampling offline.
+#
+# Diferencias vs Experimento 6:
+#   - Dataset más grande con nuevas imágenes
+#   - Modelo yolo11s-seg (mayor capacidad)
+#   - Aumentación online moderada (offline ya cubre mucho)
+#   - Paciencia mayor para convergencia con más datos
+#   - Mayor número de épocas base
+# ============================================================
+
+project:
+  name: "alternaria-seg"
+  version: "2.0.0"
+  seed: 42
+
+data:
+  root: "data/processed/segmentation_v2"
+  classes: ["conidia", "conidia-multiseptada", "hifa"]
+  image_size: 640
+  annotation_format: "yolo_seg"
+  yaml_file: "data_v2.yaml"
+
+model:
+  architecture: "yolo11s-seg"
+  pretrained_weights: "yolo11s-seg.pt"
+  num_classes: 3
+
+training:
+  epochs: 350
+  batch_size: 8
+  imgsz: 640
+  lr0: 5.0e-4
+  lrf: 0.01
+  patience: 40
+
+  # Optimizador y scheduler
+  optimizer: "AdamW"
+  cos_lr: true
+  warmup_epochs: 5.0
+  close_mosaic: 20
+
+  # Aumentación online moderada (complementa la offline)
+  degrees: 180.0
+  mosaic: 0.7
+  copy_paste: 0.4
+  mixup: 0.1
+  scale: 0.3
+  translate: 0.1
+
+metrics:
+  report: ["mAP50", "mAP50_95", "precision", "recall", "iou_per_class"]
+
+checkpoints:
+  save_dir: "checkpoints/segmentation_v3"
+  monitor: "mAP50"
