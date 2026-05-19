@@ -35,6 +35,13 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+try:
+    import pillow_heif
+    from PIL import Image
+    pillow_heif.register_heif_opener()
+except ImportError:
+    pass
+
 from src.utils.logger import get_logger
 
 app = typer.Typer(help="Prepara la estructura de directorios para clasificación binaria.")
@@ -71,7 +78,18 @@ def _copy_images(src_dir: Path, dest_dir: Path, label: str) -> list[dict]:
         if dest.exists():
             dest = dest_dir / f"{src_dir.name}_{img.name}"
 
-        shutil.copy2(img, dest)
+        if img.suffix.lower() == ".heic":
+            # Convert HEIC to JPG to avoid compatibility issues with PyTorch DataLoader
+            dest = dest.with_suffix(".jpg")
+            if not dest.exists():
+                try:
+                    img_heic = Image.open(img)
+                    img_heic.convert("RGB").save(dest, "JPEG")
+                except NameError:
+                    logger.error(f"Falta pillow-heif para abrir {img.name}. Instálalo con: uv add pillow-heif")
+                    continue
+        else:
+            shutil.copy2(img, dest)
         records.append(
             {
                 "filename": dest.name,
@@ -130,11 +148,14 @@ def main(
 
     for folder in sorted(subfolders):
         imgs = [f for f in folder.iterdir() if f.suffix.lower() in VALID_EXT]
+        if not imgs:
+            continue
+
         folder_lower = folder.name.lower().replace(" ", "_").replace("-", "_")
 
-        if folder_lower == alternaria_folder.lower():
+        if folder_lower in [alternaria_folder.lower(), "images"]:
             binary_class = "alternaria"
-        elif folder_lower in OTROS_HONGOS or folder_lower.replace("_", "") in {
+        elif folder_lower == "otros_hongos" or folder_lower in OTROS_HONGOS or folder_lower.replace("_", "") in {
             k.replace("_", "") for k in OTROS_HONGOS
         }:
             binary_class = "otros_hongos"

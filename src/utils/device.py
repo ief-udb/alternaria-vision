@@ -8,10 +8,20 @@ MPS (MacBook Air M4) y CPU.
 
 from __future__ import annotations
 
+import io
+import sys
+
 import torch
 from rich.console import Console
 
-console = Console()
+# Force UTF-8 output to avoid UnicodeEncodeError on Windows CP1252 terminals.
+# `legacy_windows=False` uses ANSI sequences; wrapping stdout ensures encoding.
+try:
+    _stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+except AttributeError:
+    _stdout = sys.stdout  # fallback for environments without .buffer
+
+console = Console(file=_stdout, highlight=False)
 
 
 def get_device(verbose: bool = True) -> torch.device:
@@ -25,20 +35,21 @@ def get_device(verbose: bool = True) -> torch.device:
             name = torch.cuda.get_device_name(0)
             vram = torch.cuda.get_device_properties(0).total_memory / 1e9
             console.print(
-                f"[bold green]✓ CUDA disponible:[/bold green] {name} ({vram:.1f} GB VRAM)"
+                f"[bold green][OK] CUDA disponible:[/bold green] {name} ({vram:.1f} GB VRAM)"
             )
     elif torch.backends.mps.is_available():
         device = torch.device("mps")
         if verbose:
-            console.print("[bold green]✓ Apple MPS disponible:[/bold green] MacBook M-series")
+            console.print("[bold green][OK] Apple MPS disponible:[/bold green] MacBook M-series")
     else:
         device = torch.device("cpu")
         if verbose:
             console.print(
-                "[bold yellow]⚠ Sin acelerador GPU — usando CPU.[/bold yellow] "
+                "[bold yellow][!] Sin acelerador GPU - usando CPU.[/bold yellow] "
                 "Se recomienda Google Colab T4 para entrenamiento completo."
             )
     return device
+
 
 
 def get_batch_size(model_name: str, device: torch.device, override: int | None = None) -> int:

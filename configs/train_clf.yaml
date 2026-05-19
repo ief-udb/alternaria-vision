@@ -1,6 +1,6 @@
 project:
   name: "alternaria-clf"
-  version: "1.0.0"
+  version: "2.0.0"
   seed: 42
 
 data:
@@ -14,8 +14,18 @@ data:
     test: 0.15
     stratified: true
 
+  # ── Normalización ────────────────────────────────────────────────────
+  # use_dataset_stats=true: calcula mean/std reales del dataset antes de
+  # entrenar y los usa en lugar de las estadísticas de ImageNet.
+  # Recomendado cuando las imágenes tienen distribución de color muy
+  # distinta a ImageNet (microscopía con tinciones).
+  # NOTA: se ignora en Fase A para preservar la transferencia de pesos.
+  normalize:
+    use_dataset_stats: false   # activar tras validar en Fase B
+    dataset_stats_samples: 500 # imágenes usadas para calcular mean/std
+
 model:
-  architecture: "efficientnet_b2"
+  architecture: "efficientnet_b0"
   pretrained: true
   num_classes: 2
   dropout_rate: 0.3
@@ -29,7 +39,7 @@ fine_tuning:
     epochs: 30
     lr: 1.0e-4
     freeze_backbone: false
-    unfreeze_last_n_blocks: 3
+    unfreeze_last_n_blocks: 1
 
 optimizer:
   name: "adamw"
@@ -50,6 +60,51 @@ training:
     patience: 10
     monitor: "val_f1"
 
+  # ── Label Smoothing ──────────────────────────────────────────────────
+  # Suaviza los targets duros (0/1) → reduce sobreconfianza del modelo.
+  # Compatible con class_weights_auto. Valor 0.0 = comportamiento original.
+  label_smoothing: 0.1
+
+  # ── Mixup / CutMix ───────────────────────────────────────────────────
+  # Regularizadores fuertes para datasets pequeños.
+  # alpha=0.0 desactiva cada técnica.
+  # En cada batch se elige aleatoriamente uno de los dos (50/50).
+  mixup_alpha: 0.1
+  cutmix_alpha: 0.0
+
+  # ── Stochastic Weight Averaging (SWA) ────────────────────────────────
+  # Promedia los pesos del modelo en los últimos epochs de Fase B.
+  # Encuentra mínimos más planos → mejor generalización en datasets pequeños.
+  # start_epoch: época de Fase B desde la que empieza a promediar (1-indexed).
+  # Solo se activa si early_stopping no ha parado antes de start_epoch.
+  swa:
+    enabled: true
+    start_epoch: 15
+    lr: 1.0e-5
+
+  # ── Progressive Resizing ─────────────────────────────────────────────
+  # Fase A entrena a resolución baja; Fase B aumenta progresivamente.
+  # Permite mayor batch_size en épocas tempranas y features más gruesas.
+  # Los tamaños de Fase B se aplican en orden; el último debe coincidir
+  # con data.image_size para coherencia con val/test.
+  progressive_resizing:
+    enabled: true          # activar si el entrenamiento es lento
+    phase_a_size: 224
+    phase_b_stages:
+      - size: 256
+        epochs: 10
+      - size: 288
+        epochs: 20         # cubre el resto de Fase B (early stopping puede cortar antes)
+
+# ── Cross-Validation ─────────────────────────────────────────────────────
+# Modo evaluación cruzada: corre K entrenamientos completos con splits
+# distintos y reporta métricas promedio ± desviación estándar.
+# NO reemplaza el entrenamiento estándar; se activa con --kfold <K>.
+cross_validation:
+  folds: 5
+  stratified: true
+  save_fold_checkpoints: false  # true → guarda best_model_fold{k}.pt por fold
+
 augmentation:
   train:
     random_rotate_90: true
@@ -63,7 +118,12 @@ augmentation:
     channel_shuffle: 0.3
     to_gray: 0.2
     gaussian_blur: { blur_limit: [3, 7], p: 0.3 }
-    gaussian_noise: { var_limit: [10, 50], p: 0.4 }
+    gaussian_noise: { std_range: [0.04, 0.2], p: 0.4 }
+    # Nuevas augmentaciones para microscopía
+    elastic_transform: { alpha: 1.0, sigma: 50, p: 0.2 }
+    grid_distortion: { num_steps: 5, distort_limit: 0.3, p: 0.2 }
+    sharpen: { alpha: [0.1, 0.4], lightness: [0.8, 1.2], p: 0.3 }
+    coarse_dropout: { num_holes: [1, 4], hole_size: [0.05, 0.15], p: 0.3 }
 
 metrics:
   primary: "f1_score"

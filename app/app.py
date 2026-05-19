@@ -44,8 +44,8 @@ st.set_page_config(
 )
 
 # ── Rutas de checkpoints ─────────────────────────────────────────────────────
-CLF_CHECKPOINT = Path("checkpoints/classification/best_model.pt")
-SEG_CHECKPOINT = Path("checkpoints/segmentation/best_model.pt")
+CLF_CHECKPOINT = Path("./checkpoints/classification/best_model.pt")
+SEG_CHECKPOINT = Path("./checkpoints/segmentation/best_model.pt")
 
 # ── Constantes morfológicas ──────────────────────────────────────────────────
 CLASS_NAMES_SEG = {
@@ -252,10 +252,23 @@ def inject_css() -> None:
 
 # ── Carga de modelos (cacheada) ───────────────────────────────────────────────
 
+def _clf_checkpoint_mtime() -> float:
+    """Returns the modification time of the checkpoint file, used as cache key."""
+    if CLF_CHECKPOINT.exists():
+        return CLF_CHECKPOINT.stat().st_mtime
+    return 0.0
+
+
+def _seg_checkpoint_mtime() -> float:
+    """Returns the modification time of the checkpoint file, used as cache key."""
+    if SEG_CHECKPOINT.exists():
+        return SEG_CHECKPOINT.stat().st_mtime
+    return 0.0
+
 
 @st.cache_resource(show_spinner=False)
-def load_classifier():
-    """Carga AlternariaCLF desde checkpoint. Se ejecuta una sola vez."""
+def load_classifier(checkpoint_mtime: float = 0.0):
+    """Carga AlternariaCLF desde checkpoint. Se recarga si el checkpoint cambia."""
     if not CLF_CHECKPOINT.exists():
         return None
     try:
@@ -265,6 +278,11 @@ def load_classifier():
         device = get_device(verbose=False)
         model = AlternariaCLF.load(CLF_CHECKPOINT, device)
         model.eval()
+        print(f"[APP] ===== MODELO CLASIFICADOR CARGADO =====")
+        print(f"[APP] Arquitectura: {model.model_name}")
+        print(f"[APP] Checkpoint: {CLF_CHECKPOINT.resolve()}")
+        print(f"[APP] checkpoint_mtime: {checkpoint_mtime}")
+        print(f"[APP] ========================================")
         return model, device
     except Exception as e:
         st.error(f"Error cargando clasificador: {e}")
@@ -272,8 +290,8 @@ def load_classifier():
 
 
 @st.cache_resource(show_spinner=False)
-def load_segmenter():
-    """Carga AlternariaSEG desde checkpoint. Se ejecuta una sola vez."""
+def load_segmenter(checkpoint_mtime: float = 0.0):
+    """Carga AlternariaSEG desde checkpoint. Se recarga si el checkpoint cambia."""
     if not SEG_CHECKPOINT.exists():
         return None
     try:
@@ -315,6 +333,12 @@ def predict_classification(
 
     classes = ["alternaria", "otros_hongos"]
     pred_idx = int(np.argmax(probs))
+
+    print(f"[APP PREDICT] arch={model.model_name} | "
+          f"logits={logits[0].cpu().numpy()} | "
+          f"probs={probs} | "
+          f"pred={classes[pred_idx]} | "
+          f"img_shape={image_np.shape}")
 
     return {
         "label": classes[pred_idx],
@@ -441,10 +465,10 @@ def render_sidebar() -> tuple[float, float, float, bool]:
         st.markdown("### Clasificación")
         conf_clf = st.slider(
             "Umbral de confianza",
-            min_value=0.3,
-            max_value=0.95,
+            min_value=0.01,
+            max_value=0.99,
             value=0.50,
-            step=0.05,
+            step=0.01,
             help=(
                 "Umbral mínimo de probabilidad para clasificar como "
                 "Alternaria alternata. El umbral óptimo de Youden se "
@@ -526,6 +550,8 @@ def render_classification_result(result: dict, conf_threshold: float) -> None:
     is_alt = result["prob_alternaria"] >= conf_threshold
     label = "Alternaria alternata" if is_alt else "Otro hongo"
     conf = result["prob_alternaria"] if is_alt else (1 - result["prob_alternaria"])
+    # In clinical context, finding the pathogen (Alternaria) is a "positive" diagnosis
+    # Not finding it (Otro hongo) is "negative"
     css_class = "result-positive" if is_alt else "result-negative"
 
     col1, col2, col3 = st.columns([2, 1, 1])
@@ -924,7 +950,7 @@ def main() -> None:
             unsafe_allow_html=True,
         )
 
-        clf_tuple = load_classifier()
+        clf_tuple = load_classifier(checkpoint_mtime=_clf_checkpoint_mtime())
 
         if clf_tuple is None:
             st.warning(
@@ -933,6 +959,35 @@ def main() -> None:
                 icon="⚠️",
             )
         else:
+            # ── Self-test with known image ────────────────────────────
+            with st.expander("🧪 Autotest: verificar modelo con imagen conocida"):
+                test_dir = Path("data/processed/classification/alternaria")
+                test_imgs = sorted([f for f in test_dir.iterdir() 
+                                   if f.suffix.lower() in {".jpg", ".jpeg", ".png"}])[:1]
+                if test_imgs:
+                    test_img = np.array(Image.open(test_imgs[0]).convert("RGB"))
+                    test_result = predict_classification(
+                        test_img, clf_tuple, image_size=288, conf_threshold=conf_clf
+                    )
+                    st.markdown(
+                        f"**Imagen de referencia:** `{test_imgs[0].name}` "
+                        f"({test_img.shape[1]}×{test_img.shape[0]} px)"
+                    )
+                    st.markdown(
+                        f"**Resultado:** P(Alternaria) = **{test_result['prob_alternaria']:.4f}** → "
+                        f"{'✅ Alternaria' if test_result['prob_alternaria'] >= conf_clf else '❌ Otro hongo'}"
+                    )
+                    st.markdown(
+                        f"**Tu imagen:** `{uploaded.name}` "
+                        f"({image_np.shape[1]}×{image_np.shape[0]} px)"
+                    )
+                    st.info(
+                        "Si la imagen de referencia se clasifica correctamente pero la tuya no, "
+                        "significa que el modelo no reconoce las características de tu imagen. "
+                        "Verifica que sea una microscopía del mismo tipo que las del entrenamiento.",
+                        icon="💡",
+                    )
+
             with st.spinner("Ejecutando clasificación..."):
                 t0 = time.perf_counter()
                 clf_result = predict_classification(
@@ -988,7 +1043,7 @@ def main() -> None:
                 unsafe_allow_html=True,
             )
 
-            seg_model = load_segmenter()
+            seg_model = load_segmenter(checkpoint_mtime=_seg_checkpoint_mtime())
 
             if seg_model is None:
                 st.warning(
