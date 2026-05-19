@@ -278,9 +278,9 @@ class TestAugmentations:
         for t in transforms:
             result = t(image=dummy_image)["image"]
             shapes.add(result.shape)
-        assert len(shapes) == 1, (
-            f"Todos los pipelines TTA deben retornar la misma forma. Formas encontradas: {shapes}"
-        )
+        assert (
+            len(shapes) == 1
+        ), f"Todos los pipelines TTA deben retornar la misma forma. Formas encontradas: {shapes}"
 
     def test_tta_first_is_original(self, dummy_image):
         """
@@ -292,6 +292,6 @@ class TestAugmentations:
 
         r_tta = tta_transforms[0](image=dummy_image)["image"]
         r_val = val_transform(image=dummy_image)["image"]
-        assert torch.allclose(r_tta, r_val), (
-            "TTA[0] debe ser equivalente a val_transform (sin augmentaciones)."
-        )
+        assert torch.allclose(
+            r_tta, r_val
+        ), "TTA[0] debe ser equivalente a val_transform (sin augmentaciones)."

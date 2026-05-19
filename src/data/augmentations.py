@@ -31,8 +31,8 @@ from __future__ import annotations
 import random
 from pathlib import Path
 
-import numpy as np
 import albumentations as A
+import numpy as np
 from albumentations.pytorch import ToTensorV2
 
 # Estadísticas de normalización ImageNet (default para fine-tuning)
@@ -86,9 +86,7 @@ def compute_dataset_stats(
     root = Path(root)
 
     # Recolectar todas las rutas válidas
-    paths: list[Path] = [
-        p for p in root.rglob("*") if p.suffix.lower() in _VALID_EXT
-    ]
+    paths: list[Path] = [p for p in root.rglob("*") if p.suffix.lower() in _VALID_EXT]
 
     if not paths:
         return _IMAGENET_MEAN, _IMAGENET_STD
@@ -103,13 +101,16 @@ def compute_dataset_stats(
 
     for p in paths:
         try:
-            img = np.array(
-                Image.open(p).convert("RGB").resize((image_size, image_size)),
-                dtype=np.float32,
-            ) / 255.0  # HxWx3 en [0,1]
+            img = (
+                np.array(
+                    Image.open(p).convert("RGB").resize((image_size, image_size)),
+                    dtype=np.float32,
+                )
+                / 255.0
+            )  # HxWx3 en [0,1]
             pixels = img.reshape(-1, 3)  # (H*W, 3)
             mean_acc += pixels.mean(axis=0)
-            sq_acc += (pixels ** 2).mean(axis=0)
+            sq_acc += (pixels**2).mean(axis=0)
             n += 1
         except Exception:
             continue
@@ -118,7 +119,7 @@ def compute_dataset_stats(
         return _IMAGENET_MEAN, _IMAGENET_STD
 
     mean = mean_acc / n
-    std = np.sqrt(np.maximum(sq_acc / n - mean ** 2, 0.0))
+    std = np.sqrt(np.maximum(sq_acc / n - mean**2, 0.0))
     std = np.clip(std, 1e-6, None)  # evitar división por cero en Normalize
 
     mean_t = tuple(float(v) for v in mean)

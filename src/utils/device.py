@@ -51,7 +51,6 @@ def get_device(verbose: bool = True) -> torch.device:
     return device
 
 
-
 def get_batch_size(model_name: str, device: torch.device, override: int | None = None) -> int:
     """
     Batch size recomendado según modelo y VRAM disponible.

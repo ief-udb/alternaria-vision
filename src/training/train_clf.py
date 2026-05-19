@@ -32,11 +32,12 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import typer
 import yaml
 from sklearn.metrics import f1_score as sk_f1
 from sklearn.model_selection import StratifiedKFold, train_test_split
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.data.augmentations import (
@@ -59,13 +60,12 @@ from src.models.classifier import AlternariaCLF
 from src.utils.device import get_batch_size, get_device
 from src.utils.logger import get_logger
 
-import torch.nn.functional as F
-
 app = typer.Typer(help="Entrena el clasificador binario Alternaria vs Otros Hongos.")
 logger = get_logger(__name__, log_file=Path("logs/train_clf.log"))
 
+
 class FocalLoss(nn.Module):
-    def __init__(self, weight=None, gamma=2.0, reduction='mean', label_smoothing=0.0):
+    def __init__(self, weight=None, gamma=2.0, reduction="mean", label_smoothing=0.0):
         super().__init__()
         self.weight = weight
         self.gamma = gamma
@@ -73,13 +73,19 @@ class FocalLoss(nn.Module):
         self.label_smoothing = label_smoothing
 
     def forward(self, inputs, targets):
-        ce_loss = F.cross_entropy(inputs, targets, weight=self.weight, reduction='none', label_smoothing=self.label_smoothing)
+        ce_loss = F.cross_entropy(
+            inputs,
+            targets,
+            weight=self.weight,
+            reduction="none",
+            label_smoothing=self.label_smoothing,
+        )
         pt = torch.exp(-ce_loss)
         focal_loss = ((1 - pt) ** self.gamma) * ce_loss
-        
-        if self.reduction == 'mean':
+
+        if self.reduction == "mean":
             return focal_loss.mean()
-        elif self.reduction == 'sum':
+        elif self.reduction == "sum":
             return focal_loss.sum()
         else:
             return focal_loss
@@ -149,7 +155,6 @@ def mixed_criterion(
 
 
 # ── Splits y DataLoaders ──────────────────────────────────────────────────────
-
 
 
 def build_dataloaders(
@@ -263,7 +268,9 @@ def build_train_loader(
     )
     nw = cfg["training"]["num_workers"]
     pin = cfg["training"]["pin_memory"] and device.type == "cuda"
-    return DataLoader(train_ds, batch_size=batch, shuffle=True, drop_last=True, num_workers=nw, pin_memory=pin)
+    return DataLoader(
+        train_ds, batch_size=batch, shuffle=True, drop_last=True, num_workers=nw, pin_memory=pin
+    )
 
 
 # ── Epoch functions ───────────────────────────────────────────────────────────
@@ -328,7 +335,6 @@ def train_epoch(
         n += lbls.size(0)
 
     return total_loss / n, correct / n
-
 
 
 @torch.no_grad()
@@ -472,8 +478,7 @@ def run_kfold(cfg: dict, device: torch.device, n_folds: int) -> None:
     fold_metrics: list[dict] = []
 
     use_amp = tr.get("mixed_precision", True) and device.type == "cuda"
-    batch = get_batch_size(cfg["model"]["architecture"], device,
-                           override=tr.get("batch_size"))
+    batch = get_batch_size(cfg["model"]["architecture"], device, override=tr.get("batch_size"))
     nw, pin = tr["num_workers"], tr["pin_memory"] and device.type == "cuda"
     ls = tr.get("label_smoothing", 0.0)
 
@@ -486,10 +491,10 @@ def run_kfold(cfg: dict, device: torch.device, n_folds: int) -> None:
         val_ds = MicroscopyDataset(root, get_val_transforms(img_size, mean, std))
         val_ds.samples = [full_ds.samples[i] for i in val_idx]
 
-        train_dl = DataLoader(train_ds, batch_size=batch, shuffle=True, drop_last=True,
-                              num_workers=nw, pin_memory=pin)
-        val_dl = DataLoader(val_ds, batch_size=batch, shuffle=False,
-                            num_workers=nw, pin_memory=pin)
+        train_dl = DataLoader(
+            train_ds, batch_size=batch, shuffle=True, drop_last=True, num_workers=nw, pin_memory=pin
+        )
+        val_dl = DataLoader(val_ds, batch_size=batch, shuffle=False, num_workers=nw, pin_memory=pin)
 
         mdl = AlternariaCLF(
             model_name=cfg["model"]["architecture"],
@@ -498,7 +503,11 @@ def run_kfold(cfg: dict, device: torch.device, n_folds: int) -> None:
             dropout_rate=cfg["model"]["dropout_rate"],
         ).to(device)
 
-        cw = train_ds.get_class_weights().to(device) if cfg["data"].get("class_weights_auto") else None
+        cw = (
+            train_ds.get_class_weights().to(device)
+            if cfg["data"].get("class_weights_auto")
+            else None
+        )
         criterion = FocalLoss(weight=cw, label_smoothing=ls, gamma=3.0)
         scaler = torch.amp.GradScaler("cuda") if use_amp else None
 
@@ -507,7 +516,8 @@ def run_kfold(cfg: dict, device: torch.device, n_folds: int) -> None:
         mdl.freeze_backbone()
         opt_a = torch.optim.AdamW(
             filter(lambda p: p.requires_grad, mdl.parameters()),
-            lr=fa["lr"], weight_decay=cfg["optimizer"]["weight_decay"],
+            lr=fa["lr"],
+            weight_decay=cfg["optimizer"]["weight_decay"],
         )
         for _ in range(fa["epochs"]):
             train_epoch(mdl, train_dl, opt_a, criterion, device, scaler, mix_a, cut_a)
@@ -517,7 +527,8 @@ def run_kfold(cfg: dict, device: torch.device, n_folds: int) -> None:
         mdl.unfreeze_last_n_blocks(fb["unfreeze_last_n_blocks"])
         opt_b = torch.optim.AdamW(
             filter(lambda p: p.requires_grad, mdl.parameters()),
-            lr=fb["lr"], weight_decay=cfg["optimizer"]["weight_decay"],
+            lr=fb["lr"],
+            weight_decay=cfg["optimizer"]["weight_decay"],
         )
         sched = torch.optim.lr_scheduler.CosineAnnealingLR(
             opt_b, T_max=fb["epochs"], eta_min=cfg["scheduler"]["eta_min"]
@@ -544,11 +555,15 @@ def run_kfold(cfg: dict, device: torch.device, n_folds: int) -> None:
             mdl.load_state_dict({k: v.to(device) for k, v in best_state.items()})
         _, _, yt, yp, ypr = eval_epoch(mdl, val_dl, criterion, device)
         from src.evaluation.metrics import compute_metrics
+
         m = compute_metrics(yt, yp, ypr, full_ds.classes)
-        fold_metrics.append({"f1": m.f1, "auc": m.auc_roc, "sens": m.sensitivity,
-                              "spec": m.specificity})
-        logger.info(f"  Fold {fold} → F1={m.f1:.4f} AUC={m.auc_roc:.4f} "
-                    f"sens={m.sensitivity:.4f} spec={m.specificity:.4f}")
+        fold_metrics.append(
+            {"f1": m.f1, "auc": m.auc_roc, "sens": m.sensitivity, "spec": m.specificity}
+        )
+        logger.info(
+            f"  Fold {fold} → F1={m.f1:.4f} AUC={m.auc_roc:.4f} "
+            f"sens={m.sensitivity:.4f} spec={m.specificity:.4f}"
+        )
 
     # Resumen
     logger.info(f"\n{'=' * 60}")
@@ -618,9 +633,7 @@ def main(
     if norm_cfg.get("use_dataset_stats", False):
         n_samp = norm_cfg.get("dataset_stats_samples", 500)
         logger.info("Calculando estadísticas reales del dataset...")
-        mean, std = compute_dataset_stats(
-            cfg["data"]["root"], cfg["data"]["image_size"], n_samp
-        )
+        mean, std = compute_dataset_stats(cfg["data"]["root"], cfg["data"]["image_size"], n_samp)
         logger.info(f"  mean={tuple(f'{v:.4f}' for v in mean)}")
         logger.info(f"  std ={tuple(f'{v:.4f}' for v in std)}")
     else:
@@ -685,7 +698,11 @@ def main(
     pr_enabled = pr_cfg.get("enabled", False)
 
     # Resolución Fase A (menor si progressive resizing está activo)
-    fa_size = pr_cfg.get("phase_a_size", cfg["data"]["image_size"]) if pr_enabled else cfg["data"]["image_size"]
+    fa_size = (
+        pr_cfg.get("phase_a_size", cfg["data"]["image_size"])
+        if pr_enabled
+        else cfg["data"]["image_size"]
+    )
     if pr_enabled and fa_size != cfg["data"]["image_size"]:
         logger.info(f"Progressive Resizing: Fase A a {fa_size}px")
         train_dl = build_train_loader(cfg, device, Path("data/splits"), fa_size, mean, std)
@@ -897,4 +914,3 @@ def main(
 
 if __name__ == "__main__":
     app()
-

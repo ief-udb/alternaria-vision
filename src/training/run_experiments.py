@@ -24,7 +24,6 @@ Uso:
 from __future__ import annotations
 
 import csv
-import sys
 import time
 import traceback
 from datetime import datetime
@@ -33,12 +32,10 @@ from pathlib import Path
 import typer
 import yaml
 
-from src.models.segmenter import AlternariaSEG, CLASS_NAMES
+from src.models.segmenter import CLASS_NAMES, AlternariaSEG
 from src.utils.logger import get_logger
 
-app = typer.Typer(
-    help="Ejecuta experimentos de segmentación secuencialmente y compara resultados."
-)
+app = typer.Typer(help="Ejecuta experimentos de segmentación secuencialmente y compara resultados.")
 logger = get_logger(__name__, log_file=Path("logs/run_experiments.log"))
 
 # ── Directorio y archivos de salida ──────────────────────────────────────
@@ -375,7 +372,7 @@ def main(
         logger.info(f"{'━' * 70}")
 
         if exp_name in completed_names:
-            logger.info(f"  ⏭ Ya completado previamente. Saltando.")
+            logger.info("  ⏭ Ya completado previamente. Saltando.")
             logger.info(f"  (Elimina la entrada de {RESULTS_CSV} para re-ejecutar)")
             continue
 
@@ -393,11 +390,13 @@ def main(
             logger.error(f"  ❌ {exp_name} falló: {e}")
             traceback.print_exc()
             # Registrar el fallo parcialmente
-            all_results.append({
-                "experiment": exp_name,
-                "config_file": config_path.name,
-                "status": f"FAILED: {e}",
-            })
+            all_results.append(
+                {
+                    "experiment": exp_name,
+                    "config_file": config_path.name,
+                    "status": f"FAILED: {e}",
+                }
+            )
             _save_results(all_results)
             continue
 
@@ -405,7 +404,7 @@ def main(
     _generate_summary(all_results)
 
     logger.info(f"\n{'=' * 70}")
-    logger.info(f"  PIPELINE COMPLETADO")
+    logger.info("  PIPELINE COMPLETADO")
     logger.info(f"  Nuevos: {n_new} | Fallidos: {n_failed} | Total: {n_total}")
     logger.info(f"  Resultados: {RESULTS_CSV}")
     logger.info(f"  Resumen:    {SUMMARY_FILE}")

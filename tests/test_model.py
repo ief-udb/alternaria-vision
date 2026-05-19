@@ -84,9 +84,9 @@ class TestAlternariaCLFForward:
             out = clf_model(dummy_batch)
         # Verificar que no todas las filas suman a 1.0 (que serían softmax)
         row_sums = out.sum(dim=1)
-        assert not torch.allclose(row_sums, torch.ones(4), atol=0.01), (
-            "La salida debe ser logits, no probabilidades softmax."
-        )
+        assert not torch.allclose(
+            row_sums, torch.ones(4), atol=0.01
+        ), "La salida debe ser logits, no probabilidades softmax."
 
     def test_softmax_sums_to_one(self, clf_model, dummy_batch):
         """Aplicando softmax a los logits, cada fila suma a 1."""
@@ -119,9 +119,9 @@ class TestAlternariaCLFFineTuning:
         clf_model.freeze_backbone()
         total_after = sum(p.numel() for p in clf_model.parameters() if p.requires_grad)
 
-        assert total_after < total_before, (
-            "freeze_backbone() debe reducir el número de parámetros entrenables."
-        )
+        assert (
+            total_after < total_before
+        ), "freeze_backbone() debe reducir el número de parámetros entrenables."
 
     def test_freeze_backbone_head_still_trainable(self, clf_model):
         """La cabeza clasificadora permanece entrenable después de freeze."""
@@ -148,9 +148,9 @@ class TestAlternariaCLFFineTuning:
         clf_model.unfreeze_last_n_blocks(n_blocks=2)
         params_partial = sum(p.numel() for p in clf_model.parameters() if p.requires_grad)
 
-        assert params_partial > params_frozen, (
-            "unfreeze_last_n_blocks() debe aumentar los parámetros entrenables."
-        )
+        assert (
+            params_partial > params_frozen
+        ), "unfreeze_last_n_blocks() debe aumentar los parámetros entrenables."
 
     def test_unfreeze_all_equals_total_params(self, clf_model):
         """unfreeze_all() hace que todos los parámetros sean entrenables."""
@@ -196,9 +196,9 @@ class TestAlternariaCLFSerialization:
                 out_orig = clf_model(dummy_batch)
                 out_loaded = loaded(dummy_batch)
 
-            assert torch.allclose(out_orig, out_loaded, atol=1e-5), (
-                "El modelo cargado debe producir predicciones idénticas."
-            )
+            assert torch.allclose(
+                out_orig, out_loaded, atol=1e-5
+            ), "El modelo cargado debe producir predicciones idénticas."
 
     def test_save_checkpoint_contains_metadata(self, clf_model):
         """El checkpoint guardado contiene los campos de metadatos esperados."""
@@ -287,18 +287,18 @@ class TestAlternariaSEG:
 
             counts = seg.predict_and_count(np.zeros((640, 640, 3), dtype=np.uint8))
 
-        assert all(v == 0 for v in counts.values()), (
-            "Sin detecciones, todos los conteos deben ser 0."
-        )
+        assert all(
+            v == 0 for v in counts.values()
+        ), "Sin detecciones, todos los conteos deben ser 0."
 
     def test_class_colors_cover_all_classes(self):
         """CLASS_COLORS contiene una entrada para cada clase de CLASS_NAMES."""
         from src.models.segmenter import CLASS_COLORS, CLASS_NAMES
 
         for class_id in CLASS_NAMES:
-            assert class_id in CLASS_COLORS, (
-                f"CLASS_COLORS no tiene color para class_id={class_id}."
-            )
+            assert (
+                class_id in CLASS_COLORS
+            ), f"CLASS_COLORS no tiene color para class_id={class_id}."
 
     def test_class_colors_are_valid_bgr(self):
         """Cada color BGR está en el rango [0, 255]³."""
@@ -307,6 +307,6 @@ class TestAlternariaSEG:
         for class_id, color in CLASS_COLORS.items():
             assert len(color) == 3, f"Color de clase {class_id} debe tener 3 canales."
             for channel_value in color:
-                assert 0 <= channel_value <= 255, (
-                    f"Valor de canal fuera de rango en clase {class_id}: {channel_value}"
-                )
+                assert (
+                    0 <= channel_value <= 255
+                ), f"Valor de canal fuera de rango en clase {class_id}: {channel_value}"

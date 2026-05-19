@@ -252,6 +252,7 @@ def inject_css() -> None:
 
 # ── Carga de modelos (cacheada) ───────────────────────────────────────────────
 
+
 def _clf_checkpoint_mtime() -> float:
     """Returns the modification time of the checkpoint file, used as cache key."""
     if CLF_CHECKPOINT.exists():
@@ -278,11 +279,11 @@ def load_classifier(checkpoint_mtime: float = 0.0):
         device = get_device(verbose=False)
         model = AlternariaCLF.load(CLF_CHECKPOINT, device)
         model.eval()
-        print(f"[APP] ===== MODELO CLASIFICADOR CARGADO =====")
+        print("[APP] ===== MODELO CLASIFICADOR CARGADO =====")
         print(f"[APP] Arquitectura: {model.model_name}")
         print(f"[APP] Checkpoint: {CLF_CHECKPOINT.resolve()}")
         print(f"[APP] checkpoint_mtime: {checkpoint_mtime}")
-        print(f"[APP] ========================================")
+        print("[APP] ========================================")
         return model, device
     except Exception as e:
         st.error(f"Error cargando clasificador: {e}")
@@ -334,11 +335,13 @@ def predict_classification(
     classes = ["alternaria", "otros_hongos"]
     pred_idx = int(np.argmax(probs))
 
-    print(f"[APP PREDICT] arch={model.model_name} | "
-          f"logits={logits[0].cpu().numpy()} | "
-          f"probs={probs} | "
-          f"pred={classes[pred_idx]} | "
-          f"img_shape={image_np.shape}")
+    print(
+        f"[APP PREDICT] arch={model.model_name} | "
+        f"logits={logits[0].cpu().numpy()} | "
+        f"probs={probs} | "
+        f"pred={classes[pred_idx]} | "
+        f"img_shape={image_np.shape}"
+    )
 
     return {
         "label": classes[pred_idx],
@@ -404,7 +407,7 @@ def generate_gradcam(
         tensor = transform(image=image_np)["image"].unsqueeze(0).to(device)
 
         target_layer = [model.get_gradcam_target_layer()]
-        
+
         with torch.no_grad():
             logits = model(tensor)
             pred_class = int(logits.argmax(1).item())
@@ -426,8 +429,9 @@ def generate_gradcam(
     except ImportError as e:
         print(f"ImportError en GradCAM: {e}")
         return None
-    except Exception as e:
+    except Exception:
         import traceback
+
         traceback.print_exc()
         return None
 
@@ -549,7 +553,6 @@ def render_classification_result(result: dict, conf_threshold: float) -> None:
     """Renderiza el resultado de clasificación con métricas visuales."""
     is_alt = result["prob_alternaria"] >= conf_threshold
     label = "Alternaria alternata" if is_alt else "Otro hongo"
-    conf = result["prob_alternaria"] if is_alt else (1 - result["prob_alternaria"])
     # In clinical context, finding the pathogen (Alternaria) is a "positive" diagnosis
     # Not finding it (Otro hongo) is "negative"
     css_class = "result-positive" if is_alt else "result-negative"

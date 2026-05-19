@@ -172,9 +172,7 @@ def main(
     weights = (
         str(checkpoint)
         if checkpoint
-        else str(ckpt_dir / "best_model.pt")
-        if eval_only
-        else model_cfg["pretrained_weights"]
+        else str(ckpt_dir / "best_model.pt") if eval_only else model_cfg["pretrained_weights"]
     )
 
     seg_model = AlternariaSEG(weights=weights)
@@ -237,7 +235,7 @@ def main(
         training_output = Path(results.save_dir)
     except AttributeError:
         training_output = Path("outputs/segmentation/alternaria_seg")
-        
+
     best_dest = ckpt_dir / "best_model.pt"
     _copy_best_checkpoint(training_output, best_dest)
 

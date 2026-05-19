@@ -27,7 +27,6 @@ from collections import Counter
 from pathlib import Path
 
 import typer
-import yaml
 
 from src.utils.logger import get_logger
 
@@ -92,9 +91,7 @@ def convert_annotations() -> dict[str, list[str]]:
 
     json_files = sorted(RAW_ANNOTATIONS.glob("*.json"))
     if not json_files:
-        raise FileNotFoundError(
-            f"No se encontraron archivos .json en: {RAW_ANNOTATIONS}"
-        )
+        raise FileNotFoundError(f"No se encontraron archivos .json en: {RAW_ANNOTATIONS}")
 
     # Directorio temporal para todas las labels (luego se distribuyen por split)
     all_labels_dir = PROCESSED_SEG / "labels" / "_all"
@@ -134,9 +131,7 @@ def convert_annotations() -> dict[str, list[str]]:
                 if stype not in {"polygon", "rotation"}:
                     continue
                 if len(pts) < 3:
-                    logger.warning(
-                        f"Poligono con <3 puntos en {jf.name}. Ignorado."
-                    )
+                    logger.warning(f"Poligono con <3 puntos en {jf.name}. Ignorado.")
                     continue
                 if label not in CLASS_MAP:
                     logger.warning(
@@ -200,10 +195,7 @@ def split_dataset(image_classes: dict[str, list[str]]) -> dict[str, list[str]]:
 
     # Estratificar: priorizar imágenes con clases minoritarias
     has_hifa = [s for s in all_stems if "hifa" in image_classes[s]]
-    has_conidia_only = [
-        s for s in all_stems
-        if "conidia" in image_classes[s] and s not in has_hifa
-    ]
+    has_conidia_only = [s for s in all_stems if "conidia" in image_classes[s] and s not in has_hifa]
     rest = [s for s in all_stems if s not in has_hifa and s not in has_conidia_only]
 
     random.shuffle(has_hifa)
@@ -282,9 +274,7 @@ def distribute_files(splits: dict[str, list[str]]) -> None:
                     shutil.copy2(lbl_src, dst_lbl)
                 copied_lbls += 1
 
-        logger.info(
-            f"  {split_name:<6}: {copied_imgs} imágenes, {copied_lbls} labels copiados"
-        )
+        logger.info(f"  {split_name:<6}: {copied_imgs} imágenes, {copied_lbls} labels copiados")
 
     # Limpiar directorio temporal _all
     if all_labels_dir.exists():
@@ -337,9 +327,9 @@ def run_advanced_augmentation() -> None:
     logger.info("=" * 60)
 
     from src.data.advanced_augment import (
-        process_dataset,
-        create_data_yaml,
         DEST_DIR,
+        create_data_yaml,
+        process_dataset,
     )
 
     if DEST_DIR.exists():
@@ -374,9 +364,13 @@ def run_training(experiment_num: int = 7) -> None:
     logger.info(f"  PASO 5: Entrenamiento — Experimento {experiment_num}")
     logger.info("=" * 60)
 
-    from src.training.run_experiments import _run_single_experiment, _save_results
-    from src.training.run_experiments import _generate_summary, _load_existing_results
-    from src.training.run_experiments import RESULTS_CSV
+    from src.training.run_experiments import (
+        RESULTS_CSV,
+        _generate_summary,
+        _load_existing_results,
+        _run_single_experiment,
+        _save_results,
+    )
 
     config_path = Path(f"configs/experiments/experiment_{experiment_num}_data_centric_v3.yaml")
     if not config_path.exists():
@@ -415,18 +409,14 @@ def main(
     skip_convert: bool = typer.Option(
         False, "--skip-convert", help="Saltar conversión de anotaciones."
     ),
-    skip_augment: bool = typer.Option(
-        False, "--skip-augment", help="Saltar aumentación avanzada."
-    ),
+    skip_augment: bool = typer.Option(False, "--skip-augment", help="Saltar aumentación avanzada."),
     skip_train: bool = typer.Option(
         False, "--skip-train", help="Saltar entrenamiento (solo preparar datos)."
     ),
     experiment: int = typer.Option(
         7, "--experiment", "-e", help="Número de experimento a ejecutar."
     ),
-    clean: bool = typer.Option(
-        False, "--clean", help="Limpiar datos procesados antes de empezar."
-    ),
+    clean: bool = typer.Option(False, "--clean", help="Limpiar datos procesados antes de empezar."),
 ) -> None:
     """
     Pipeline completo de preparación y entrenamiento de segmentación.

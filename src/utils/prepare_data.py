@@ -38,6 +38,7 @@ from rich.table import Table
 try:
     import pillow_heif
     from PIL import Image
+
     pillow_heif.register_heif_opener()
 except ImportError:
     pass
@@ -86,7 +87,10 @@ def _copy_images(src_dir: Path, dest_dir: Path, label: str) -> list[dict]:
                     img_heic = Image.open(img)
                     img_heic.convert("RGB").save(dest, "JPEG")
                 except NameError:
-                    logger.error(f"Falta pillow-heif para abrir {img.name}. Instálalo con: uv add pillow-heif")
+                    logger.error(
+                        f"Falta pillow-heif para abrir {img.name}. "
+                        "Instálalo con: uv add pillow-heif"
+                    )
                     continue
         else:
             shutil.copy2(img, dest)
@@ -155,9 +159,11 @@ def main(
 
         if folder_lower in [alternaria_folder.lower(), "images"]:
             binary_class = "alternaria"
-        elif folder_lower == "otros_hongos" or folder_lower in OTROS_HONGOS or folder_lower.replace("_", "") in {
-            k.replace("_", "") for k in OTROS_HONGOS
-        }:
+        elif (
+            folder_lower == "otros_hongos"
+            or folder_lower in OTROS_HONGOS
+            or folder_lower.replace("_", "") in {k.replace("_", "") for k in OTROS_HONGOS}
+        ):
             binary_class = "otros_hongos"
         else:
             logger.warning(

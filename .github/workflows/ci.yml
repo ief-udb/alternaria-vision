@@ -1,4 +1,5 @@
 name: CI
+
 on:
   push:
     branches: [main, develop]
@@ -6,17 +7,56 @@ on:
     branches: [main]
 
 jobs:
-  lint-and-test:
+  lint:
+    name: Lint & Style Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
-      - run: uv python install 3.11
-      - run: uv sync --extra dev
-      - run: uv run ruff check src/ app/ tests/
-      - run: uv run black --check src/ app/ tests/
-      - run: uv run pytest tests/ -v --cov=src --cov-report=xml
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install Python 3.11
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run Ruff
+        run: uv run ruff check src/ app/ tests/
+
+      - name: Run Black
+        run: uv run black --check src/ app/ tests/
+
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies (OpenCV)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1 libglib2.0-0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install Python 3.11
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run pytest & coverage
+        run: uv run pytest tests/ -v --cov=src --cov-report=xml
         env:
           PYTHONPATH: ${{ github.workspace }}
