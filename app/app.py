@@ -959,35 +959,6 @@ def main() -> None:
                 icon="⚠️",
             )
         else:
-            # ── Self-test with known image ────────────────────────────
-            with st.expander("🧪 Autotest: verificar modelo con imagen conocida"):
-                test_dir = Path("data/processed/classification/alternaria")
-                test_imgs = sorted([f for f in test_dir.iterdir() 
-                                   if f.suffix.lower() in {".jpg", ".jpeg", ".png"}])[:1]
-                if test_imgs:
-                    test_img = np.array(Image.open(test_imgs[0]).convert("RGB"))
-                    test_result = predict_classification(
-                        test_img, clf_tuple, image_size=288, conf_threshold=conf_clf
-                    )
-                    st.markdown(
-                        f"**Imagen de referencia:** `{test_imgs[0].name}` "
-                        f"({test_img.shape[1]}×{test_img.shape[0]} px)"
-                    )
-                    st.markdown(
-                        f"**Resultado:** P(Alternaria) = **{test_result['prob_alternaria']:.4f}** → "
-                        f"{'✅ Alternaria' if test_result['prob_alternaria'] >= conf_clf else '❌ Otro hongo'}"
-                    )
-                    st.markdown(
-                        f"**Tu imagen:** `{uploaded.name}` "
-                        f"({image_np.shape[1]}×{image_np.shape[0]} px)"
-                    )
-                    st.info(
-                        "Si la imagen de referencia se clasifica correctamente pero la tuya no, "
-                        "significa que el modelo no reconoce las características de tu imagen. "
-                        "Verifica que sea una microscopía del mismo tipo que las del entrenamiento.",
-                        icon="💡",
-                    )
-
             with st.spinner("Ejecutando clasificación..."):
                 t0 = time.perf_counter()
                 clf_result = predict_classification(
